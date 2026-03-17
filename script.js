@@ -42,7 +42,6 @@ yesBtn.addEventListener('click', () => {
     sticker.src = "https://media.tenor.com/r0VCmLiA3mEAAAAm/sseeyall-bubu-dudu.webp";
     title.innerText = "мен де жақсы көрем! 🥰";
     
-    // БАТЫРМАЛАРДЫ АУЫСТЫРУ
     container.innerHTML = `
         <button id="kissBtn" style="background-color: #fd79a8; color: white; padding: 20px 40px; font-size: 22px; cursor: pointer; border-radius: 12px; border: none;">
              сүю 💋
@@ -51,14 +50,10 @@ yesBtn.addEventListener('click', () => {
 
     const kissBtn = document.getElementById('kissBtn');
     
-    // СҮЮ БАТЫРМАСЫН БАСҚАНДА:
     kissBtn.addEventListener('click', () => {
         createKissEffect(); // Анимация
-        
-        // ХАБАРЛАМА ЖІБЕРУДІ ОСЫ ЖЕРДЕ ШАҚЫРАМЫЗ
-        sendNotification(); 
+        sendNotification(); // Хабарлама жіберу
 
-        // СТИКЕР МЕН МӘТІНДІ АУЫСТЫРУ
         sticker.src = kissSteps[kissIndex].img;
         title.innerText = kissSteps[kissIndex].text;
 
@@ -69,7 +64,60 @@ yesBtn.addEventListener('click', () => {
     });
 });
 
-// 4. СҮЮ АНИМАЦИЯСЫ
+// 4. ТЕЛЕГРАМҒА ТОЛЫҚ МӘЛІМЕТ ЖІБЕРУ (Уақыт пен Құрылғы)
+async function sendNotification() {
+    const token = "8632015616:AAFSbYJClMyktInbsI5rDZekv1ezC-sQ5ik";
+    const chat_id = "8130655129";
+    
+    let ipAddress = "Анықталмады";
+
+    // 1. IP мекенжайын анықтау
+    try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ipAddress = ipData.ip;
+    } catch (e) {
+        console.error("IP анықтау мүмкін болмады");
+    }
+
+    // 2. Мәліметтерді жинау
+    const time = new Date().toLocaleString('kk-KZ'); 
+    const platform = navigator.platform; 
+    const userAgent = navigator.userAgent;
+
+    // Қарапайым тілмен құрылғыны анықтау
+    let deviceType = "Компьютер";
+    if (/Android/i.test(userAgent)) deviceType = "Android";
+    else if (/iPhone|iPad/i.test(userAgent)) deviceType = "iPhone/iPad";
+
+    const message = `
+🔔 **ЖАҢА СҮЮ!** 💋
+📅 **Уақыты:** ${time}
+🌐 **IP мекенжайы:** ${ipAddress}
+📱 **Құрылғы:** ${deviceType} (${platform})
+🔢 **Стикер нөмірі:** ${kissIndex + 1}
+    `;
+
+    // 3. Telegram-ға POST сұраныс жіберу
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chat_id,
+            text: message,
+            parse_mode: "Markdown" // Мәтінді әдемі (қалың) етіп көрсету үшін
+        })
+    })
+    .then(res => {
+        if (res.ok) console.log("СМС IP-мен бірге кетті!");
+        else console.log("Қате коды: " + res.status);
+    })
+    .catch(err => console.error("Жіберу қатесі:", err));
+}
+
+// 5. СҮЮ АНИМАЦИЯСЫ
 function createKissEffect() {
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
@@ -82,28 +130,6 @@ function createKissEffect() {
     document.body.appendChild(bigKiss);
     bigKiss.style.animation = 'heartPulse 1.5s ease-out forwards';
 
-    // Ұсақ жүрекшелер
-    for (let i = 0; i < 15; i++) {
-        const miniHeart = document.createElement('div');
-        miniHeart.style.position = 'fixed';
-        miniHeart.style.left = '50%';
-        miniHeart.style.top = '50%';
-        miniHeart.innerText = '❤️';
-        miniHeart.style.fontSize = '30px';
-        miniHeart.style.zIndex = '999';
-        document.body.appendChild(miniHeart);
-
-        const destX = (Math.random() - 0.5) * 600;
-        const destY = (Math.random() - 0.5) * 600;
-
-        miniHeart.animate([
-            { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
-            { transform: `translate(${destX}px, ${destY}px) scale(0)`, opacity: 0 }
-        ], { duration: 2000, easing: 'ease-out' });
-
-        setTimeout(() => miniHeart.remove(), 2000);
-    }
-
     setTimeout(() => {
         overlay.style.opacity = '0';
         setTimeout(() => {
@@ -111,20 +137,4 @@ function createKissEffect() {
             bigKiss.remove();
         }, 500);
     }, 1500);
-}
-
-// 5. ТЕЛЕГРАМҒА ХАБАРЛАМА ЖІБЕРУ
-function sendNotification() {
-    const token = "8632015616:AAFSbYJClMyktInbsI5rDZekv1ezC-sQ5ik";
-    const chat_id = "8130655129";
-    
-    // Уақытты қосу арқылы қашан басылғанын көресің
-    const now = new Date().toLocaleTimeString(); 
-    const message = `Сүйіктің 'сүю' батырмасын басты! ✨\nУақыты: ${now}\nСтикер нөмірі: ${kissIndex + 1}`;
-
-    const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(message)}`;
-
-    fetch(url)
-        .then(response => console.log("Хабарлама жіберілді!"))
-        .catch(error => console.error("Қате кетті:", error));
 }
